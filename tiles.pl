@@ -69,7 +69,7 @@ if ( !(-e $icon1) or !(-e $icon2))					# Icon file missing - bad thing
 
 # (35,-89),(34,-90)
 
-$dbh->do("drop table gvp_world_tiles") ;
+eval { $dbh->do("drop table gvp_world_tiles") };
 $dbh->do("create table gvp_world_tiles (zoom int2,tilex int4,tiley int4,latpix int4,lngpix int4)") ;
 
 $sth = $dbh->prepare("select (volpnt)[0] as lat, (volpnt)[1] as lng from gvp_world") ;
