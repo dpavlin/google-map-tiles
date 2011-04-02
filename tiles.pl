@@ -7,6 +7,11 @@ use DBI ;
 use strict ;
 use GD ;
 use USNaviguide_Google_Tiles ;
+use File::Path;
+
+my $name = shift @ARGV || die "usage: $0 database\n";
+
+warn "WORKING on $name\n";
 
 my $zoom	= 0 ;
 my $lat		= 0 ;
@@ -44,10 +49,10 @@ my $xiconoff	= 12 ;					# X Icon offset in pixels (width or lng)
 my $yiconoff	= 12 ;					# Y Icon offset in pixels (height or lat)
 my $xiconpix	= 24 ;					# Icon width in pixels
 my $yiconpix	= 24 ;					# Icon width in pixels
-my $path	= 'tiles/' ;
+my $path	= "$name/tiles" ;
 my $icon1	= 'images/gvp_icon_1.png' ;		# Zooms up to 7
 my $icon2	= 'images/gvp_icon_2.png' ;		# Zooms after 7
-my $dbh 	= DBI->connect ( "dbi:Pg:dbname=volcano" , "" , "" , { AutoCommit => 1 } ) ;
+my $dbh 	= DBI->connect ( "dbi:Pg:dbname=$name" , "" , "" , { AutoCommit => 1 } ) ;
 
 # Make sure icon file exists...
 
@@ -124,7 +129,9 @@ print "Total Points: $count\n" ;
 
 for ( $zoom = $minzoom; $zoom <= $maxzoom; $zoom++ )
 {
- system("rm tiles/$zoom/*") ;
+ warn "clean $path/$zoom\n";
+ rmtree "$path/$zoom";
+ mkpath "$path/$zoom";
 }
 # Open up map icon files as images...
 
@@ -150,7 +157,7 @@ while ( ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
 
  # Calculate tile fields...
 
- $file = $path . $zoom . '/v_' . $tilex . '_' . $tiley . '.png' ;
+ $file = $path . '/' . $zoom . '/v_' . $tilex . '_' . $tiley . '.png' ;
 
  ($top,$left) = &Google_Tile_to_Pix( $value, $tiley, $tilex ) ;
 
@@ -187,10 +194,10 @@ while ( ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
   $im->copy($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix) ;
  }
 
- open PNG, ">$file" ;
- print PNG $im->png ;
- close PNG ;
- chmod(0444, $file) ;
+ open(my $PNG, '>', $file) || die "$file: $!";
+ print $PNG $im->png ;
+ close $PNG ;
+# chmod(0444, $file) ;
  if ( int($count/100)*100 == $count )
  {
   print "Processed $count tiles...\n" ;
@@ -198,7 +205,10 @@ while ( ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
 }
 print "Processed $count total tiles...\n" ;
 
-$dbh->do("drop table gvp_world_tiles") ;
+#$dbh->do("drop table gvp_world_tiles") ;
+
+# allow web server to select data
+$dbh->do("grant select on gvp_world to public") ;
 
 $dbh->disconnect ;
 
