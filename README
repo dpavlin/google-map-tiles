@@ -1,0 +1,12 @@
+INSTALL
+
+# create database
+createdb volcano
+psql volcano < volcano.sql
+
+# debuild tiles
+./tiles.pl volcano
+
+# setup apache
+sudo ln -s /srv/google-map-tiles/apache-gmap.conf /etc/apache2/conf.d/
+sudo /etc/init.d/apache2 restart
