@@ -4,7 +4,7 @@
   <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
   <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
   <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
-  <title>World Volcanoes</title>
+  <title>Where are our books comming from?</title>
   <script type="text/javascript">
   //<![CDATA[
 
@@ -37,7 +37,7 @@
       if (x < 0) {
        x += n;
       } 
-      return "tiles/tileserver.pl?Z=" + zoom + "&X=" + x + "&Y=" + tile.y ;
+      return "koha/tiles/" + zoom + "/v_" + x + "_" + tile.y + ".png";
      },
      tileSize: new google.maps.Size(256, 256),
      opacity:1,
@@ -100,7 +100,7 @@
    {
     var request = window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : new XMLHttpRequest;
     var parms = "POINT=" + point.toUrlValue() + "&ZOOM=" + map.getZoom() ;
-    request.open("POST", "volcano.pl", true);
+    request.open("POST", "koha.pl", true);
     request.setRequestHeader('Content-Type','application/x-www-form-urlencoded') ;	// Thanks to Darkstar 3D!
     request.onreadystatechange = function() 
     {

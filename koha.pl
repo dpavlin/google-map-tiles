@@ -7,8 +7,9 @@ use CGI qw/:standard *table/;
 use strict ;
 use DBI ;
 use USNaviguide_Google_Tiles ;
+use XML::FeedPP;
 
-my $dbh 	= DBI->connect ( "dbi:Pg:dbname=volcano" , "" , "" , { AutoCommit => 1 } ) ;
+my $dbh 	= DBI->connect ( "dbi:Pg:dbname=koha" , "" , "" , { AutoCommit => 1 } ) ;
 my $point	= param('POINT') ;
 my $zoom	= param('ZOOM') ;
 
@@ -30,7 +31,7 @@ my $descript	= '' ;
 my $x		= '' ;
 my $i		= 0 ;
 
-print header('text/xml');
+print qq{Content-type: text/xml\r\n\r\n};
 print qq{<?xml version="1.0" encoding="UTF-8"?>\n} ;
 print qq!<map>\n! ;
 
@@ -64,9 +65,28 @@ if ( $point =~ /(.*),(.*)/ )
   if ( sqrt(($vlatpix -	$latpix)**2  + ($vlngpix - $lngpix)**2) > $maxpix )
   {
    # Click not within maxpix of point...
-   print qq!<info error="No volcano is within range of your click, please try again."/>\n! ;
+   print qq!<info error="No publisher is within range of your click, please try again."/>\n! ;
   } else								# Good point found
   {
+
+	my $hash = eval $descript;
+
+	my $feed = XML::FeedPP->new( "http://koha.ffzg.hr/cgi-bin/koha/opac-search.pl?idx=pl&format=rss2&q=$name" );
+
+	my @links;
+	foreach my $item ( $feed->get_item ) {
+		push @links, sprintf qq|<li><a target="koha" href="%s">%s</a> %s|,
+			$item->link, $item->title, $item->description
+		;
+	}
+	$descript = join("\n"
+		, "<b>$name</b>"
+		, " " . @links
+		, "<ol>"
+		, @links
+		, "</ol>"
+	);
+
    print qq!<info error = "" name = "$name" lat="$vlat" lng="$vlng">\n! ;
    print qq! <description><\![CDATA[$descript]]></description>\n! ;
    print qq!</info>\n! ;
