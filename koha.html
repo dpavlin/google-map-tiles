@@ -1,0 +1,155 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
+ <head>
+  <link rel="SHORTCUT ICON" href="/favicon.ico" type="image/x-icon" />
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
+  <title>World Volcanoes</title>
+  <script type="text/javascript">
+  //<![CDATA[
+
+   var map ;
+   var infoWindow ;
+   var maxZoom = 10 ;
+   var minZoom = 2 ;
+
+   // Load the map script...
+
+   function loadScript() {
+    detectBrowser();
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "http://maps.google.com/maps/api/js?sensor=false&callback=initialize";
+    document.body.appendChild(script);
+   }
+ 
+   // Load the map...
+
+   function initialize() {
+    var myLatlng = new google.maps.LatLng(35,-95);
+
+    // Create the volcano tile layer...
+
+    var volcanoOptions = {
+     getTileUrl: function(tile, zoom) {
+      var n = 1 << zoom;
+      var x = tile.x % n;
+      if (x < 0) {
+       x += n;
+      } 
+      return "tiles/tileserver.pl?Z=" + zoom + "&X=" + x + "&Y=" + tile.y ;
+     },
+     tileSize: new google.maps.Size(256, 256),
+     opacity:1,
+     minZoom:3,
+     maxZoom:9,
+     isPng: true
+    };
+
+    var volcanoMapType = new google.maps.ImageMapType(volcanoOptions);
+
+    // Map options...
+
+    var myOptions = {
+      zoom: 4,
+      scrollwheel: false,
+      center: myLatlng,
+      mapTypeId: google.maps.MapTypeId.TERRAIN
+    };
+    map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+    map.overlayMapTypes.insertAt(0, volcanoMapType);
+
+    // Keep zoom within limits...
+
+    google.maps.event.addListener(map, 'zoom_changed', function() {
+     if ( map.getZoom() > maxZoom ) {
+      map.setZoom( maxZoom ) ;
+     } else if ( map.getZoom() < minZoom ) {
+      map.setZoom( minZoom ) ;
+     }
+    });
+
+    // Initialize an infoWindow...
+
+    infoWindow = new google.maps.InfoWindow();
+
+    // Add a click listener...
+
+    google.maps.event.addListener(map, 'click', function(event) {
+     processClick(event.latLng);
+    });
+   }
+
+   // Set the map size based on the type of agent...
+
+   function detectBrowser() {
+    var useragent = navigator.userAgent;
+    var mapdiv = document.getElementById("map_canvas");
+    if ( useragent.indexOf('iPhone') != -1 || useragent.indexOf('Android') != -1 ) {
+     mapdiv.style.width = '100%';
+     mapdiv.style.height = '100%';
+    } else {     
+     mapdiv.style.width = '1024px';
+     mapdiv.style.height = '768px';
+    }
+   }
+
+   // Check for an active click (on a map icon)...
+
+   function processClick ( point )
+   {
+    var request = window.ActiveXObject ? new ActiveXObject('Microsoft.XMLHTTP') : new XMLHttpRequest;
+    var parms = "POINT=" + point.toUrlValue() + "&ZOOM=" + map.getZoom() ;
+    request.open("POST", "volcano.pl", true);
+    request.setRequestHeader('Content-Type','application/x-www-form-urlencoded') ;	// Thanks to Darkstar 3D!
+    request.onreadystatechange = function() 
+    {
+     document.getElementById("loading").innerHTML = "Loading, please wait..." ;
+
+     if (request.readyState == 4)
+     {
+      var xmlDoc = request.responseXML ;
+      try
+      {
+       var info = xmlDoc.documentElement.getElementsByTagName("info") ;
+       var error = info[0].getAttribute("error") ; 
+
+       if ( error )
+       {
+        alert(error) ;
+       } else
+       {
+        var name = info[0].getAttribute("name") ;
+        var lat = parseFloat(info[0].getAttribute("lat")) ;
+        var lng = parseFloat(info[0].getAttribute("lng")) ;
+        var clickLatlng = new google.maps.LatLng(lat,lng) ;
+        var description = info[0].getElementsByTagName("description")[0].firstChild.nodeValue ;
+        var html = "<div style='height:300px; width:350px;overflow:auto;'>" + description + "</div>" ;
+
+        infoWindow.close();
+        infoWindow.setOptions({
+         content: html,
+         position: clickLatlng
+        });
+        infoWindow.open(map); 
+       }
+      } catch(e)
+      {
+       alert("Some error occured during program processing:" + e) ;
+      }       
+      document.getElementById("loading").innerHTML = "" ;
+     }
+    }
+    request.send(parms);
+   }
+
+  //]]>
+  </script>
+
+ </head>
+ <body bgcolor="#D1D0CD" text="black" link="#444444" alink="gray" vlink="#111111" onload="loadScript();">
+  <div id="map_canvas"></div>
+  <div id="loading" title="loading message for map" style="background-color:#D1D0CD; position:absolute; left:120px; top:200px;"></div>
+ </body>
+</html>
+
