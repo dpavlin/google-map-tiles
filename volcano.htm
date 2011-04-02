@@ -37,7 +37,8 @@
       if (x < 0) {
        x += n;
       } 
-      return "tiles/tileserver.pl?Z=" + zoom + "&X=" + x + "&Y=" + tile.y ;
+//      return "tiles/tileserver.pl?Z=" + zoom + "&X=" + x + "&Y=" + tile.y ;
+      return "volcano/tiles/" + zoom + "/v_" + x + "_" + tile.y + ".png";
      },
      tileSize: new google.maps.Size(256, 256),
      opacity:1,
