@@ -9,6 +9,7 @@ my $zoom	= param('Z') ;				# Zoom
 my $py		= param('Y') ;				# Y Tile Name
 my $px		= param('X') ;				# X Tile Name
 my $path	= $ENV{'DOCUMENT_ROOT'} . "/ws-2010-08/tiles" ;
+$path = '/srv/google-map-markers-with-tile-layer/tiles';
 my $i		= 0 ;
 my $size	= 0 ;
 my $x		= '' ;
