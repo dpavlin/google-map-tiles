@@ -79,6 +79,8 @@ limit 100
 	});
 	$sth->execute( $city, $country );
 
+	$count = $sth->rows if $sth->rows > $count;
+
 	my $descript = "<b>$city</b> <em>$country</em> $count items\n<ol>";
 
 	while ( my $row = $sth->fetchrow_hashref ) {
