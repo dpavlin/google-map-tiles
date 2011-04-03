@@ -3,6 +3,8 @@ use warnings;
 use strict;
 
 use DBI;
+use XML::Simple;
+use Data::Dump qw(dump);
 
 our $koha_dsn    = 'dbi:oursql:dbname=koha';
 our $koha_user   = 'kohaadmin';
@@ -54,5 +56,58 @@ sub fetch_table {
 	} while $offset;
 }
 
-fetch_table 'biblio' => 'biblionumber' ;
-fetch_table 'biblioitems' => 'biblioitemnumber' ;
+#fetch_table 'biblio' => 'biblionumber' ;
+#fetch_table 'biblioitems' => 'biblioitemnumber' ;
+
+warn "# drop geo_biblioitems";
+eval { $g_dbh->do(qq{ drop table geo_biblioitems }) };
+
+warn "# create geo_biblioitems";
+$g_dbh->do(qq{
+create table geo_biblioitems (
+	biblioitemnumber integer not null references biblioitems(biblioitemnumber),
+	biblionumber integer not null references biblio(biblionumber),
+	city text
+)
+});
+my $sth_insert = $g_dbh->prepare(qq{
+	insert into geo_biblioitems values (?,?,?)
+});
+
+warn "# select bibiloitems";
+my $sth = $g_dbh->prepare(qq{
+SELECT
+	biblioitemnumber, biblionumber, isbn, issn, marcxml
+from biblioitems
+});
+$sth->execute;
+
+warn $sth->rows, " rows\n";
+
+sub warn_dump {
+	warn dump @_,$/ if $ENV{DEBUG};
+}
+
+while ( my $row = $sth->fetchrow_hashref ) {
+	my $xml = XMLin( delete $row->{marcxml} );
+
+	warn_dump($row, $xml);
+
+	my @tag_260 = grep { $_->{tag} eq '260' } @{ $xml->{datafield} };
+	warn_dump @tag_260 if $ENV{DEBUG};
+
+	foreach my $sf ( @{ $tag_260[0]->{subfield} } ) {
+		$row->{ 'tag_260_' . $sf->{code} } = $sf->{content};
+	}
+
+	$row->{city} = $row->{tag_260_a};
+	$row->{city} =~ s/['"]+//g;
+	$row->{city} =~ s/\s*\[etc.*\].*$//;
+	$row->{city} =~ s/\s*[:]\s*$//;
+
+	warn_dump $row;
+
+	print $row->{city}, $/;
+
+	$sth_insert->execute( $row->{biblioitemnumber}, $row->{biblionumber}, $row->{city} );
+}
