@@ -94,6 +94,9 @@ while ( my $row = $sth->fetchrow_hashref ) {
 	warn_dump($row, $xml);
 
 	my @tag_260 = grep { $_->{tag} eq '260' } @{ $xml->{datafield} };
+
+	next unless @tag_260;
+
 	warn_dump @tag_260 if $ENV{DEBUG};
 
 	foreach my $sf ( @{ $tag_260[0]->{subfield} } ) {
