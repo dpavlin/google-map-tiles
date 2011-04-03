@@ -172,13 +172,13 @@ $g_dbh->do(qq{
 
 select
 	count(biblionumber)
-	,point(avg(lat),avg(lng))
+	,point(lat,lng)
 	,geo_city.city
-	,min(country) as country
+	,country
 into geo_count
 from geo_biblioitems
 join geo_city on city_koha = geo_biblioitems.city
-group by geo_city.city
+group by geo_city.city, country, lat, lng
 order by count(biblionumber) desc
 
 });

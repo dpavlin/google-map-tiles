@@ -25,7 +25,6 @@ my $vlngpix	= 0 ;
 
 my $value	= '' ;
 my $maxpix	= 15 ;					# Maximum pixels between click and point
-my $name	= '' ;
 my $descript	= '' ;
 my $x		= '' ;
 my $i		= 0 ;
@@ -51,9 +50,9 @@ if ( $point =~ /(.*),(.*)/ )
 
  ($latpix,$lngpix) = &Google_Coord_to_Pix( $value, $lat, $lng ) ;	# Convert coordinate to pixel location
  
- $x = "select city,count,point,point'($lat,$lng)' <-> point as distance from geo_count order by distance limit 1" ;
+ $x = "select city,country,count,point,point'($lat,$lng)' <-> point as distance from geo_count order by distance limit 1" ;
 
- if ( ($name,$descript,$volpnt,$i) = $dbh->selectrow_array($x) )	# Got one
+ if ( my ($city,$country,$count,$volpnt,$i) = $dbh->selectrow_array($x) )	# Got one
  {
   $volpnt =~ /\((.*),(.*)\)/ ; 
   $vlat = $1 ;
@@ -74,13 +73,13 @@ select
 from geo_city c
 join geo_biblioitems bi on bi.city = c.city_koha
 join biblio b on b.biblionumber = bi.biblionumber
-where c.city = ?
+where c.city = ? and country = ?
 order by timestamp
 limit 100
 	});
-	$sth->execute( $name );
+	$sth->execute( $city, $country );
 
-	$descript = "<b>$name</b> $descript items\n<ol>";
+	my $descript = "<b>$city</b> <em>$country</em> $count items\n<ol>";
 
 	while ( my $row = $sth->fetchrow_hashref ) {
 		$descript .= sprintf qq|<li><a target="koha" href="http://koha.ffzg.hr/cgi-bin/koha/opac-detail.pl?biblionumber=%d">%s</a> %s\n|,
@@ -90,7 +89,7 @@ limit 100
 
 	$descript .= "\n</ol>\n";
 
-   print qq!<info error = "" name = "$name" lat="$vlat" lng="$vlng">\n! ;
+   print qq!<info error=""  name="${city}_${country}" lat="$vlat" lng="$vlng">\n! ;
    print qq! <description><\![CDATA[$descript]]></description>\n! ;
    print qq!</info>\n! ;
   }
