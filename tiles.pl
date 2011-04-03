@@ -19,8 +19,6 @@ my $lng		= 0 ;
 my $latpix	= 0 ;
 my $lngpix	= 0 ;
 my %tiles	= ( ) ;
-my $tilex	= 0 ;
-my $tiley	= 0 ;
 my $nacount	= 0 ;
 my %tile	= ( ) ;
 my $top		= 0 ;
@@ -45,10 +43,6 @@ my $imicon1	= '' ;
 my $imicon2	= '' ;
 my $maxzoom	= 10 ;
 my $minzoom	= 2 ;
-my $xiconoff	= 12 ;					# X Icon offset in pixels (width or lng)
-my $yiconoff	= 12 ;					# Y Icon offset in pixels (height or lat)
-my $xiconpix	= 24 ;					# Icon width in pixels
-my $yiconpix	= 24 ;					# Icon width in pixels
 my $path	= "$name/tiles" ;
 my $icon1	= 'images/gvp_icon_1.png' ;		# Zooms up to 7
 my $icon2	= 'images/gvp_icon_2.png' ;		# Zooms after 7
@@ -62,6 +56,23 @@ if ( !(-e $icon1) or !(-e $icon2))					# Icon file missing - bad thing
  exit ;
 }
 
+sub get_icon {
+	my $zoom = shift;
+	$imicon = GD::Image->newFromPng( $zoom > 7 ? $icon2 : $icon1 ) ;
+	 # Calculate which icon to use based on zoom...
+
+	my $custom_icon = "$name/icons/$zoom.png";
+	$imicon = GD::Image->newFromPng( $custom_icon ) if -e $custom_icon;
+
+	my $xiconpix = $imicon->width;
+	my $yiconpix = $imicon->height;
+
+	# FIXME make click position configurable
+	my $xiconoff = $xiconpix / 2;
+	my $yiconoff = $yiconpix / 2;
+
+ 	return ( $xiconpix, $yiconpix, $xiconoff, $yiconoff );
+}
 
 # Relations: 
 # Y,Top,N,S,Lat,Height
@@ -84,14 +95,16 @@ while ( ($lat,$lng) = $sth->fetchrow_array )
 
  # Figure out what tiles are needed...
 
- for ( $zoom = $minzoom; $zoom <= $maxzoom; $zoom++ )
+ for ( my $zoom = $minzoom; $zoom <= $maxzoom; $zoom++ )
  {
   $value = &Google_Tile_Factors($zoom) ; 		# Calculate Tile Factors
 
   ($latpix,$lngpix) = &Google_Coord_to_Pix( $value, $lat, $lng ) ;
   %tiles = ( ) ;
 
-  ($tiley,$tilex) = &Google_Pix_to_Tile( $value, $latpix + $yiconoff, $lngpix + $xiconoff ) ;
+  my ( $xiconpix, $yiconpix, $xiconoff, $yiconoff ) = get_icon $zoom;
+
+  my ($tiley,$tilex) = &Google_Pix_to_Tile( $value, $latpix + $yiconoff, $lngpix + $xiconoff ) ;
   $tiles{"$tiley $tilex"} = [$tilex, $tiley] ;
 
   ($tiley,$tilex) = &Google_Pix_to_Tile( $value, $latpix + $yiconoff, $lngpix - $xiconoff ) ;
@@ -137,9 +150,6 @@ for ( $zoom = $minzoom; $zoom <= $maxzoom; $zoom++ )
 }
 # Open up map icon files as images...
 
-$imicon1 = GD::Image->newFromPng( $icon1 ) ;
-$imicon2 = GD::Image->newFromPng( $icon2 ) ;
-
 # Create index...
 
 $dbh->do("create index gvp_world_tiles_main on gvp_world_tiles (zoom,tilex,tiley)") ;
@@ -153,7 +163,7 @@ $sth->execute ;
 
 $count = 0 ;
 
-while ( ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
+while ( my ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
 {
  $count++ ;
 
@@ -175,18 +185,7 @@ while ( ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
 
  $im->setThickness(1) ;
 
- # Calculate which icon to use based on zoom...
-
- if ( $zoom > 7 )
- {
-  $imicon = $imicon2 ;
- } else
- {
-  $imicon = $imicon1 ;
- }
-
- my $custom_icon = "$name/icons/$zoom.png";
- $imicon = GD::Image->newFromPng( $custom_icon ) if -e $custom_icon;
+ my ( $xiconpix, $yiconpix, $xiconoff, $yiconoff ) = get_icon $zoom;
 
  $sti = $dbh->prepare("select latpix,lngpix from gvp_world_tiles where zoom = $zoom and tilex = $tilex and tiley = $tiley") ;
 
