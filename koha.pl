@@ -12,22 +12,7 @@ my $dbh 	= DBI->connect ( "dbi:Pg:dbname=koha" , "dpavlin" , "" , { AutoCommit =
 my $point	= param('POINT') ;
 my $zoom	= param('ZOOM') ;
 
-my $lat		= 0 ;
-my $lng		= 0 ;
-my $latpix	= 0 ;
-my $lngpix	= 0 ;
-
-my $volpnt	= '' ;
-my $vlat	= 0 ;
-my $vlng	= 0 ;
-my $vlatpix	= 0 ;
-my $vlngpix	= 0 ;
-
-my $value	= '' ;
 my $maxpix	= 15 ;					# Maximum pixels between click and point
-my $descript	= '' ;
-my $x		= '' ;
-my $i		= 0 ;
 
 print qq{Content-type: text/xml\r\n\r\n};
 print qq{<?xml version="1.0" encoding="UTF-8"?>\n} ;
@@ -43,22 +28,32 @@ if ( !$point )
 
 if ( $point =~ /(.*),(.*)/ )
 {
- $lat	= $1 ;
- $lng	= $2 ;
+ my $lat	= $1 ;
+ my $lng	= $2 ;
 
- $value = &Google_Tile_Factors($zoom) ;					# Calculate Tile Factors
+ my $value = &Google_Tile_Factors($zoom) ;					# Calculate Tile Factors
 
- ($latpix,$lngpix) = &Google_Coord_to_Pix( $value, $lat, $lng ) ;	# Convert coordinate to pixel location
+ my ($latpix,$lngpix) = &Google_Coord_to_Pix( $value, $lat, $lng ) ;	# Convert coordinate to pixel location
  
- $x = "select city,country,count,point,point'($lat,$lng)' <-> point as distance from geo_count order by distance limit 1" ;
+ my $sql = qq{
+select
+	city
+	,country
+	,count
+	,point
+	,point'($lat,$lng)' <-> point as distance
+from geo_count
+order by distance
+limit 1
+ };
 
- if ( my ($city,$country,$count,$volpnt,$i) = $dbh->selectrow_array($x) )	# Got one
+ if ( my ($city,$country,$count,$volpnt,$i) = $dbh->selectrow_array($sql) )	# Got one
  {
   $volpnt =~ /\((.*),(.*)\)/ ; 
-  $vlat = $1 ;
-  $vlng = $2 ;
+  my $vlat = $1 ;
+  my $vlng = $2 ;
 
-  ($vlatpix,$vlngpix) = &Google_Coord_to_Pix( $value, $vlat, $vlng ) ;	# Convert coordinate to pixel location
+  my ($vlatpix,$vlngpix) = &Google_Coord_to_Pix( $value, $vlat, $vlng ) ;	# Convert coordinate to pixel location
 
   if ( sqrt(($vlatpix -	$latpix)**2  + ($vlngpix - $lngpix)**2) > $maxpix )
   {
