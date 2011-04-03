@@ -142,7 +142,7 @@ create table geo_city (
 my $sth_insert = $g_dbh->prepare(qq{insert into geo_city values (?,?,?,?,?,?,?,?)});
 
 my $sth = $g_dbh->prepare(qq{
-select count(*),city from geo_biblioitems group by city order by count(city) desc
+select count(*),city from geo_biblioitems where city not in (select city_koha from geo_city) group by city order by count(city) desc
 });
 $sth->execute;
 
