@@ -88,8 +88,10 @@ sub warn_dump {
 	warn dump @_,$/ if $ENV{DEBUG};
 }
 
+my $i = 0;
+
 while ( my $row = $sth->fetchrow_hashref ) {
-	my $xml = XMLin( delete $row->{marcxml} );
+	my $xml = XMLin( delete $row->{marcxml}, ForceArray => [ 'datafield', 'subfield' ] );
 
 	warn_dump($row, $xml);
 
@@ -107,10 +109,11 @@ while ( my $row = $sth->fetchrow_hashref ) {
 	$row->{city} =~ s/['"]+//g;
 	$row->{city} =~ s/\s*\[etc.*\].*$//;
 	$row->{city} =~ s/\s*[:]\s*$//;
+	$row->{city} =~ s/[\[\]]+//g;
 
 	warn_dump $row;
 
-	print $row->{city}, $/;
+	warn "# $i ", $row->{city}, $/ if $i++ % 100 == 0;
 
 	$sth_insert->execute( $row->{biblioitemnumber}, $row->{biblionumber}, $row->{city} );
 }
