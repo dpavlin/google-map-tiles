@@ -59,6 +59,8 @@ sub fetch_table {
 #fetch_table 'biblio' => 'biblionumber' ;
 #fetch_table 'biblioitems' => 'biblioitemnumber' ;
 
+sub geo_biblioitems {
+
 warn "# drop geo_biblioitems";
 eval { $g_dbh->do(qq{ drop table geo_biblioitems }) };
 
@@ -116,4 +118,51 @@ while ( my $row = $sth->fetchrow_hashref ) {
 	warn "# $i ", $row->{city}, $/ if $i++ % 100 == 0;
 
 	$sth_insert->execute( $row->{biblioitemnumber}, $row->{biblionumber}, $row->{city} );
+}
+
+} # geo_biblioitems;
+
+#geo_biblioitems;
+
+eval {
+$g_dbh->do(qq{
+create table geo_city (
+	city_koha text not null primary key,
+	city text,
+	country text,
+	county text,
+	lat float,
+	lng float,
+	radius int,
+	dump text
+)
+});
+};
+
+my $sth_insert = $g_dbh->prepare(qq{insert into geo_city values (?,?,?,?,?,?,?,?)});
+
+my $sth = $g_dbh->prepare(qq{
+select count(*),city from geo_biblioitems group by city order by count(city) desc
+});
+$sth->execute;
+
+warn $sth->rows, " cities to geolocate";
+
+use Geo::Coder::PlaceFinder;
+
+my $geocoder = Geo::Coder::PlaceFinder->new( appid => 'eQWEGC58' );
+
+while( my $row = $sth->fetchrow_hashref ) {
+	my $location  = $geocoder->geocode(location => $row->{city});
+	warn dump($location);
+	$sth_insert->execute(
+		$row->{city}
+		, $location->{city},
+		, $location->{country}
+		, $location->{county}
+		, $location->{latitude}
+		, $location->{longitude}
+		, $location->{radius}
+		, dump($location)
+	);
 }
