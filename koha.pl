@@ -64,19 +64,23 @@ limit 1
 
 	my $sth = $dbh->prepare(qq{
 select
-	author, title, bi.biblionumber
+	author, title, max(bi.biblionumber), count(title)
 from geo_city c
 join geo_biblioitems bi on bi.city = c.city_koha
 join biblio b on b.biblionumber = bi.biblionumber
 where c.city = ? and country = ?
-order by timestamp
+group by author, title
+order by min(timestamp)
 limit 100
 	});
 	$sth->execute( $city, $country );
 
-	$count = $sth->rows if $sth->rows > $count;
+	my $rows = $sth->rows;
+	$rows = "more than $rows" if $rows == 100;
+	my $books = 'books';
+	$books = 'book' if $rows == 1;
 
-	my $descript = "<b>$city</b> <em>$country</em> $count items\n<ol>";
+	my $descript = "<b>$city</b> <em>$country</em> <small>$rows $books</small>\n<ol>";
 
 	while ( my $row = $sth->fetchrow_hashref ) {
 		$descript .= sprintf qq|<li><a target="koha" href="http://koha.ffzg.hr/cgi-bin/koha/opac-detail.pl?biblionumber=%d">%s</a> %s\n|,
