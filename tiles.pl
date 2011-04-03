@@ -72,7 +72,9 @@ if ( !(-e $icon1) or !(-e $icon2))					# Icon file missing - bad thing
 eval { $dbh->do("drop table gvp_world_tiles") };
 $dbh->do("create table gvp_world_tiles (zoom int2,tilex int4,tiley int4,latpix int4,lngpix int4)") ;
 
-$sth = $dbh->prepare("select (volpnt)[0] as lat, (volpnt)[1] as lng from gvp_world") ;
+my $sql = "select (volpnt)[0] as lat, (volpnt)[1] as lng from gvp_world" ;
+$sql    = "select (point)[0]  as lat, (point) [1] as lng from geo_count" if $name =~ m/koha/;
+$sth = $dbh->prepare( $sql );
 
 $sth->execute ;
 
