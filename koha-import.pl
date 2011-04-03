@@ -178,6 +178,7 @@ select
 into geo_count
 from geo_biblioitems
 join geo_city on city_koha = geo_biblioitems.city
+where length(geo_city.city) > 1 or length(country) > 1
 group by geo_city.city, country, lat, lng
 order by count(biblionumber) desc
 
