@@ -7,9 +7,8 @@ use CGI qw/:standard *table/;
 use strict ;
 use DBI ;
 use USNaviguide_Google_Tiles ;
-use XML::FeedPP;
 
-my $dbh 	= DBI->connect ( "dbi:Pg:dbname=koha" , "" , "" , { AutoCommit => 1 } ) ;
+my $dbh 	= DBI->connect ( "dbi:Pg:dbname=koha" , "dpavlin" , "" , { AutoCommit => 1 } ) ;
 my $point	= param('POINT') ;
 my $zoom	= param('ZOOM') ;
 
@@ -52,7 +51,7 @@ if ( $point =~ /(.*),(.*)/ )
 
  ($latpix,$lngpix) = &Google_Coord_to_Pix( $value, $lat, $lng ) ;	# Convert coordinate to pixel location
  
- $x = "select name,descript,volpnt,point'($lat,$lng)' <-> volpnt as distance from gvp_world order by distance limit 1" ;
+ $x = "select city,count,point,point'($lat,$lng)' <-> point as distance from geo_count order by distance limit 1" ;
 
  if ( ($name,$descript,$volpnt,$i) = $dbh->selectrow_array($x) )	# Got one
  {
@@ -69,23 +68,27 @@ if ( $point =~ /(.*),(.*)/ )
   } else								# Good point found
   {
 
-	my $hash = eval $descript;
+	my $sth = $dbh->prepare(qq{
+select
+	author, title, bi.biblionumber
+from geo_city c
+join geo_biblioitems bi on bi.city = c.city_koha
+join biblio b on b.biblionumber = bi.biblionumber
+where c.city = ?
+order by timestamp
+limit 100
+	});
+	$sth->execute( $name );
 
-	my $feed = XML::FeedPP->new( "http://koha.ffzg.hr/cgi-bin/koha/opac-search.pl?idx=pl&format=rss2&q=$name" );
+	$descript = "<b>$name</b> $descript items\n<ol>";
 
-	my @links;
-	foreach my $item ( $feed->get_item ) {
-		push @links, sprintf qq|<li><a target="koha" href="%s">%s</a> %s|,
-			$item->link, $item->title, $item->description
+	while ( my $row = $sth->fetchrow_hashref ) {
+		$descript .= sprintf qq|<li><a target="koha" href="http://koha.ffzg.hr/cgi-bin/koha/opac-detail.pl?biblionumber=%d">%s</a> %s\n|,
+			$row->{biblionumber}, $row->{title}, $row->{author}
 		;
 	}
-	$descript = join("\n"
-		, "<b>$name</b>"
-		, " " . @links
-		, "<ol>"
-		, @links
-		, "</ol>"
-	);
+
+	$descript .= "\n</ol>\n";
 
    print qq!<info error = "" name = "$name" lat="$vlat" lng="$vlng">\n! ;
    print qq! <description><\![CDATA[$descript]]></description>\n! ;
