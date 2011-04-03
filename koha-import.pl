@@ -174,12 +174,13 @@ select
 	count(biblionumber)
 	,point(lat,lng)
 	,geo_city.city
+	,geo_city.city_koha
 	,country
 into geo_count
 from geo_biblioitems
 join geo_city on city_koha = geo_biblioitems.city
 where length(geo_city.city) > 1
-group by geo_city.city, country, lat, lng
+group by geo_city.city, country, lat, lng, city_koha
 order by count(biblionumber) desc
 
 });

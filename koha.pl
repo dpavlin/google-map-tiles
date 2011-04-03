@@ -14,6 +14,8 @@ my $zoom	= param('ZOOM') ;
 
 my $maxpix	= 15 ;					# Maximum pixels between click and point
 
+my $limit_books = 100; # max. for one click
+
 print qq{Content-type: text/xml\r\n\r\n};
 print qq{<?xml version="1.0" encoding="UTF-8"?>\n} ;
 print qq!<map>\n! ;
@@ -37,7 +39,7 @@ if ( $point =~ /(.*),(.*)/ )
  
  my $sql = qq{
 select
-	city
+	city_koha
 	,country
 	,count
 	,point
@@ -68,15 +70,18 @@ select
 from geo_city c
 join geo_biblioitems bi on bi.city = c.city_koha
 join biblio b on b.biblionumber = bi.biblionumber
-where c.city = ? and country = ?
+where c.city_koha = ? and country = ?
 group by author, title
 order by min(timestamp)
-limit 100
+limit $limit_books
 	});
 	$sth->execute( $city, $country );
 
 	my $rows = $sth->rows;
-	$rows = "more than $rows" if $rows == 100;
+	if ( $rows == $limit_books ) {
+		$rows = "more than $rows";
+		$rows = $count if $count > $rows;
+	};
 	my $books = 'books';
 	$books = 'book' if $rows == 1;
 
