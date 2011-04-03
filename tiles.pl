@@ -195,7 +195,8 @@ while ( my ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
  {
   $ix = $lngpix - $left - $xiconoff ;			# Remove half image size
   $iy = $latpix - $top - $yiconoff ;			# Remove half image size
-  $im->copy($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix) ;
+#  $im->copy($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix) ;
+  $im->copyMerge($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix,50) ;
  }
 
  open(my $PNG, '>', $file) || die "$file: $!";
