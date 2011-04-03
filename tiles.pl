@@ -185,6 +185,9 @@ while ( ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
   $imicon = $imicon1 ;
  }
 
+ my $custom_icon = "$name/icons/$zoom.png";
+ $imicon = GD::Image->newFromPng( $custom_icon ) if -e $custom_icon;
+
  $sti = $dbh->prepare("select latpix,lngpix from gvp_world_tiles where zoom = $zoom and tilex = $tilex and tiley = $tiley") ;
 
  $sti->execute ;
