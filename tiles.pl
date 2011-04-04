@@ -58,11 +58,16 @@ if ( !(-e $icon1) or !(-e $icon2))					# Icon file missing - bad thing
 
 sub get_icon {
 	my $zoom = shift;
+
+	# Calculate which icon to use based on zoom...
 	$imicon = GD::Image->newFromPng( $zoom > 7 ? $icon2 : $icon1 ) ;
-	 # Calculate which icon to use based on zoom...
+	my $merge = 90;
 
 	my $custom_icon = "$name/icons/$zoom.png";
-	$imicon = GD::Image->newFromPng( $custom_icon ) if -e $custom_icon;
+	if ( -e $custom_icon ) {
+		$imicon = GD::Image->newFromPng( $custom_icon );
+		$merge = 50;
+	}
 
 	my $xiconpix = $imicon->width;
 	my $yiconpix = $imicon->height;
@@ -71,7 +76,7 @@ sub get_icon {
 	my $xiconoff = $xiconpix / 2;
 	my $yiconoff = $yiconpix / 2;
 
- 	return ( $xiconpix, $yiconpix, $xiconoff, $yiconoff );
+ 	return ( $xiconpix, $yiconpix, $xiconoff, $yiconoff, $merge );
 }
 
 # Relations: 
@@ -185,7 +190,7 @@ while ( my ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
 
  $im->setThickness(1) ;
 
- my ( $xiconpix, $yiconpix, $xiconoff, $yiconoff ) = get_icon $zoom;
+ my ( $xiconpix, $yiconpix, $xiconoff, $yiconoff, $merge ) = get_icon $zoom;
 
  $sti = $dbh->prepare("select latpix,lngpix from gvp_world_tiles where zoom = $zoom and tilex = $tilex and tiley = $tiley") ;
 
@@ -196,7 +201,7 @@ while ( my ($zoom,$tilex,$tiley) = $sth->fetchrow_array )
   $ix = $lngpix - $left - $xiconoff ;			# Remove half image size
   $iy = $latpix - $top - $yiconoff ;			# Remove half image size
 #  $im->copy($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix) ;
-  $im->copyMerge($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix,50) ;
+  $im->copyMerge($imicon,$ix,$iy,0,0,$xiconpix,$yiconpix,$merge) ;
  }
 
  open(my $PNG, '>', $file) || die "$file: $!";
