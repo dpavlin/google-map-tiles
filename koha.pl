@@ -66,7 +66,7 @@ limit 1
 
 	my $sth = $dbh->prepare(qq{
 select
-	author, title, max(bi.biblionumber), count(title)
+	author, title, max(bi.biblionumber) as biblionumber, count(title)
 from geo_city c
 join geo_biblioitems bi on bi.city = c.city_koha
 join biblio b on b.biblionumber = bi.biblionumber
